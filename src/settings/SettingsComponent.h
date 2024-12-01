@@ -17,6 +17,7 @@
 #define SETTINGS_SECTION_OVERRIDES "overrides"
 #define SETTINGS_SECTION_CEC "cec"
 #define SETTINGS_SECTION_APPLEREMOTE "appleremote"
+#define SETTINGS_SECTION_OTHER "other"
 
 #define AUDIO_DEVICE_TYPE_BASIC "basic"
 #define AUDIO_DEVICE_TYPE_SPDIF "spdif"
@@ -49,6 +50,7 @@ public:
   Q_INVOKABLE void setValue(const QString& sectionID, const QString& key, const QVariant& value);
   Q_INVOKABLE void setValues(const QVariantMap& options);
   Q_INVOKABLE QVariant value(const QString& sectionID, const QString& key);
+  Q_INVOKABLE QVariant orderedSections();
   Q_INVOKABLE QVariant allValues(const QString& section = "");
   // Note: the naming "remove" is a lie - it will remove the affected keys only if they are not
   //       declared in settings_descriptions.json. Also, sections are never removed, even if they
@@ -59,7 +61,6 @@ public:
   Q_INVOKABLE QVariantList settingDescriptions();
   Q_INVOKABLE QString getWebClientUrl(bool desktop);
   Q_INVOKABLE QString getExtensionPath();
-  Q_INVOKABLE bool isUsingExternalWebClient();
   Q_INVOKABLE QString getClientName();
   Q_INVOKABLE bool ignoreSSLErrors();
   Q_INVOKABLE bool autodetectCertBundle();

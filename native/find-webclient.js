@@ -5,8 +5,8 @@ async function tryConnect(server) {
         if (!server.startsWith("http")) {
             server = "http://" + server;
         }
-
-        const url = new URL("/System/Info/Public", server);
+        serverBaseURL = server.replace(/\/+$/, "");
+        const url = serverBaseURL + "/System/Info/Public";
         const response = await fetch(url);
         if (response.ok && (await response.json()).Id) {
             const htmlResponse = await fetch(server);
@@ -28,16 +28,16 @@ async function tryConnect(server) {
                 const base = doc.createElement("base");
                 base.href = webUrl
                 doc.head.insertBefore(base, doc.head.firstChild);
-                
+
                 const oldPushState = window.history.pushState;
                 window.history.pushState = function(state, title, url) {
-                    url = (new URL(url, realUrl)).toString();
+                    url = url ? (new URL(url, realUrl)).toString() : realUrl;
                     return oldPushState.call(window.history, state, title, url);
                 };
 
                 const oldReplaceState = window.history.replaceState;
                 window.history.replaceState = function(state, title, url) {
-                    url = (new URL(url, realUrl)).toString();
+                    url = url ? (new URL(url, realUrl)).toString() : realUrl;
                     return oldReplaceState.call(window.history, state, title, url);
                 };
 

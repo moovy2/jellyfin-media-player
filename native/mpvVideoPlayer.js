@@ -15,10 +15,7 @@
             this.appHost = appHost;
             this.appSettings = appSettings;
 
-            // this can be removed after 10.9
-            this.setTransparency = (dashboard && dashboard.setBackdropTransparency)
-                ? dashboard.setBackdropTransparency.bind(dashboard)
-                : appRouter.setTransparency.bind(appRouter);
+            this.setTransparency = dashboard.default.setBackdropTransparency.bind(dashboard);
 
             /**
              * @type {string}
@@ -39,7 +36,7 @@
              * @type {boolean}
              */
             this.isFetching = false;
-    
+
             /**
              * @type {HTMLDivElement | null | undefined}
              */
@@ -539,7 +536,7 @@
                     player.finished.connect(this.onEnded);
                     player.updateDuration.connect(this.onDuration);
                     player.error.connect(this.onError);
-                    player.paused.connect(this.onPause);    
+                    player.paused.connect(this.onPause);
                 }
 
                 if (options.fullscreen) {
@@ -722,12 +719,15 @@
     }
 
     setVolume(val, save = true) {
-        this._volume = val;
-        if (save) {
-            this.saveVolume((val || 100) / 100);
-            this.events.trigger(this, 'volumechange');
+        val = Number(val);
+        if (!isNaN(val)) {
+            this._volume = val;
+            if (save) {
+                this.saveVolume(val / 100);
+                this.events.trigger(this, 'volumechange');
+            }
+            window.api.player.setVolume(val);
         }
-        window.api.player.setVolume(val);
     }
 
     getVolume() {

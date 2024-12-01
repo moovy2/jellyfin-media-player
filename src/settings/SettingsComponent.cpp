@@ -164,6 +164,20 @@ QVariant SettingsComponent::allValues(const QString& section)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QVariant SettingsComponent::orderedSections()
+{
+  QJsonArray desc;
+
+  for(SettingsSection* section : m_sections.values())
+  {
+    if (!section->isHidden())
+      desc.push_back(QJsonValue::fromVariant(section->sectionOrder()));
+  }
+
+  return desc.toVariantList();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static void writeFile(const QString& filename, const QByteArray& data)
 {
   QSaveFile file(filename);
@@ -486,8 +500,6 @@ bool SettingsComponent::loadDescription()
     return false;
   }
 
-  m_sectionIndex = 0;
-
   for(auto val : doc.array())
   {
     if (!val.isObject())
@@ -523,8 +535,9 @@ void SettingsComponent::parseSection(const QJsonObject& sectionObject)
   }
 
   int platformMask = platformMaskFromObject(sectionObject);
+  int sectionOrder = sectionObject.value("order").toInt(-1);
 
-  auto  section = new SettingsSection(sectionName, (quint8)platformMask, m_sectionIndex ++, this);
+  auto section = new SettingsSection(sectionName, (quint8)platformMask, sectionOrder, this);
   section->setHidden(sectionObject.value("hidden").toBool(false));
   section->setStorage(sectionObject.value("storage").toBool(false));
 
@@ -559,6 +572,13 @@ void SettingsComponent::parseSection(const QJsonObject& sectionObject)
 
     int vPlatformMask = platformMaskFromObject(valobj);
     SettingsValue* setting = new SettingsValue(valobj.value("value").toString(), defaultval, (quint8)vPlatformMask, this);
+
+    if (valobj.contains("display_name"))
+      setting->setDisplayName(valobj.value("display_name").toString());
+
+    if (valobj.contains("help"))
+      setting->setHelp(valobj.value("help").toString());
+
     setting->setHasDescription(true);
     setting->setHidden(valobj.value("hidden").toBool(false));
     setting->setIndexOrder(order ++);
@@ -655,6 +675,8 @@ Platform SettingsComponent::platformFromString(const QString& platformString)
     return PLATFORM_WINDOWS;
   else if (platformString == "linux")
     return PLATFORM_LINUX;
+  else if (platformString == "freebsd")
+    return PLATFORM_FREEBSD;
   else if (platformString == "oe")
     return PLATFORM_OE;
   else if (platformString == "oe_rpi")
@@ -717,28 +739,6 @@ bool SettingsComponent::resetAndSaveOldConfiguration()
   return settingsFile.rename(Paths::dataDir("jellyfinmediaplayer.conf.old"));
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////
-bool SettingsComponent::isUsingExternalWebClient()
-{
-  QString url;
-
-  url = SettingsComponent::Get().value(SETTINGS_SECTION_PATH, "startupurl_desktop").toString();
-
-  if (url == "bundled")
-  {
-    auto path = Paths::webClientPath("desktop");
-    QFileInfo check_file(path);
-    if (SettingsComponent::Get().value(SETTINGS_SECTION_MAIN, "forceExternalWebclient").toBool() ||
-       !(check_file.exists() && check_file.isFile())) {
-      // use built-in fallback
-      return true;
-    }
-  }
-
-  return false;
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////
 QString SettingsComponent::getWebClientUrl(bool desktop)
 {
@@ -748,13 +748,7 @@ QString SettingsComponent::getWebClientUrl(bool desktop)
 
   if (url == "bundled")
   {
-    auto path = Paths::webClientPath("desktop");
-    QFileInfo check_file(path);
-    if (SettingsComponent::Get().value(SETTINGS_SECTION_MAIN, "forceExternalWebclient").toBool() ||
-       !(check_file.exists() && check_file.isFile())) {
-      // use built-in fallback
-      path = Paths::webExtensionPath() + "find-webclient.html";
-    }
+    auto path = Paths::webExtensionPath() + "find-webclient.html";
 
     url = "file:///" + path;
   }

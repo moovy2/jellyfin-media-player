@@ -2,17 +2,17 @@
 
 Desktop client using jellyfin-web with embedded MPV player. Supports Windows, Mac OS,
 and Linux. Media plays within the same window using the jellyfin-web interface unlike
-Jellyfin Desktop. Supports audio passthrough. Based on [Plex Media Player](https://github.com/plexinc/plex-media-player).
+Jellyfin Desktop. Supports audio passthrough.
 
 ![Screenshot of Jellyfin Media Player](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/master/images/jmp-player-win.png)
 
 Downloads:
  - [Windows, Mac, and Linux Releases](https://github.com/jellyfin/jellyfin-media-player/releases)
+   - Note for Mac users: builds for Intel require macOS 12+ and Apple Silicon builds requires macOS 14+
  - [Flathub (Linux)](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-media-player)
 
 Related Documents:
- - Web client: https://repo.jellyfin.org/releases/server/portable/versions/stable/web/
-     - Note: If you do not provide the web client, the application will use a fallback UI where the user must select a server which has a web client.
+ - Web client: Application uses server-provided web client.
  - Web client integration documentation: [for-web-developers.md](https://github.com/jellyfin/jellyfin-media-player/blob/master/for-web-developers.md)
  - API Docs in [client-api.md](https://github.com/jellyfin/jellyfin-media-player/blob/master/client-api.md)
  - Tip: For help building, look at the GitHub Actions file!
@@ -29,9 +29,9 @@ git clone https://github.com/jellyfin/jellyfin-media-player.git --branch v1.9.1 
 
 ### Ubuntu based systems
 
-Install dependancies:
+Install dependencies:
 ```bash
-sudo apt install build-essential autoconf automake libtool libharfbuzz-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libvdpau-dev libva-dev mesa-common-dev libegl1-mesa-dev yasm libasound2-dev libpulse-dev libuchardet-dev zlib1g-dev libfribidi-dev git libgnutls28-dev libgl1-mesa-dev libsdl2-dev cmake wget python g++ qtwebengine5-dev qtquickcontrols2-5-dev libqt5x11extras5-dev libcec-dev qml-module-qtquick-controls qml-module-qtwebengine qml-module-qtwebchannel qtbase5-private-dev curl unzip
+sudo apt install build-essential autoconf automake libtool libharfbuzz-dev libfreetype6-dev libfontconfig1-dev libx11-dev libxrandr-dev libvdpau-dev libva-dev mesa-common-dev libegl1-mesa-dev yasm libasound2-dev libpulse-dev libuchardet-dev zlib1g-dev libfribidi-dev git libgnutls28-dev libgl1-mesa-dev libsdl2-dev cmake wget meson nasm ninja-build python3 g++ qtwebengine5-dev qtquickcontrols2-5-dev libqt5x11extras5-dev libcec-dev qml-module-qtquick-controls qml-module-qtwebengine qml-module-qtwebchannel qtbase5-private-dev curl unzip
 ```
 
 Build commands for Ubuntu:
@@ -39,9 +39,10 @@ Build commands for Ubuntu:
 mkdir ~/jmp; cd ~/jmp
 git clone https://github.com/mpv-player/mpv-build.git
 cd mpv-build
+./use-mpv-release
+./update
 echo -Dlibmpv=true > mpv_options
-echo -Dpipewire=disabled >> mpv_options # hopefully temporary
-./rebuild -j4
+./rebuild -j`nproc`
 sudo ./install
 sudo ln -s /usr/local/lib/x86_64-linux-gnu/libmpv.so /usr/local/lib/x86_64-linux-gnu/libmpv.so.1
 sudo ln -sf /usr/local/lib/x86_64-linux-gnu/libmpv.so /usr/local/lib/libmpv.so.2
@@ -49,17 +50,17 @@ sudo ldconfig
 cd ~/jmp/
 git clone https://github.com/jellyfin/jellyfin-media-player.git
 cd jellyfin-media-player
-./download_webclient.sh
+mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local/ ..
-make -j4
-sudo make install
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local/ -G Ninja ..
+ninja
+sudo ninja install
 rm -rf ~/jmp/
 ```
 
 ### Fedora based systems
 
-Install dependancies:
+Install dependencies:
 ```bash
 sudo dnf install autoconf automake libtool freetype-devel libXrandr-devel libvdpau-devel libva-devel  mesa-libGL-devel libdrm-devel libX11-devel  mesa-libEGL-devel yasm  alsa-lib pulseaudio-libs-devel zlib-devel fribidi-devel git gnutls-devel mesa-libGLU-devel  SDL2-devel cmake wget python g++  qt-devel libcec-devel qt5-qtbase-devel curl unzip qt5-qtwebchannel-devel qt5-qtwebengine-devel qt5-qtx11extras-devel mpv.x86_64 qwt-qt5-devel.x86_64 qt5-qtbase.x86_64 meson.noarch ninja-build.x86_64 qt5-qtbase-private-devel mpv-libs.x86_64
 ```
@@ -73,7 +74,7 @@ git clone https://github.com/mpv-player/mpv-build.git
 cd mpv-build/
 echo -Dlibmpv=true > mpv_options
 echo -Dpipewire=disabled >> mpv_options # hopefully temporary
-./rebuild -j4
+./rebuild -j`nproc`
 sudo ./install
 sudo mkdir /usr/local/lib/x86_64-linux-gnu
 sudo ln -s /usr/local/lib64/libmpv.so /usr/local/lib/x86_64-linux-gnu/libmpv.so.1
@@ -82,10 +83,10 @@ sudo ldconfig
 cd ~/jmp/
 git clone https://github.com/jellyfin/jellyfin-media-player.git
 cd jellyfin-media-player/
-./download_webclient.sh 
+mkdir build
 cd build/
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local/ ..
-make -j4
+make -j`nproc`
 sudo make install
 ```
 
@@ -112,7 +113,7 @@ You need to run these commands in git bash.
 ```bash
 git clone https://github.com/jellyfin/jellyfin-media-player
 cd jellyfin-media-player
-./download_webclient.sh
+mkdir build
 cd build
 ```
 
@@ -120,7 +121,7 @@ Open the "x86_x64 Cross Tools Command Prompt for VS 2019". `cd` to the `build` d
 
 ```
 set PATH=%PATH%;C:\Program Files (x86)\WiX Toolset v3.11\bin
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=output -DCMAKE_MAKE_PROGRAM=ninja.exe -DQTROOT=C:/Qt/5.15.2/msvc2019_64 -DMPV_INCLUDE_DIR=mpv/include -DMPV_LIBRARY=mpv/mpv.dll -DCMAKE_INSTALL_PREFIX=output ..
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=output -DCMAKE_MAKE_PROGRAM=ninja.exe -DQTROOT=C:/Qt/5.15.2/msvc2019_64 -DMPV_INCLUDE_DIR=mpv/include -DMPV_LIBRARY=mpv/libmpv-2.dll -DCMAKE_INSTALL_PREFIX=output ..
 lib /def:mpv\mpv.def /out:mpv\mpv.dll.lib /MACHINE:X64
 ninja
 ninja windows_package
@@ -134,7 +135,7 @@ Then run the following commands (replace <QT_DIR> with your QT installation loca
 
 ```bash
 brew install mpv ninja
-./download_webclient.sh
+mkdir build
 cd build
 cmake -GNinja -DQTROOT=<QT_DIR> -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=output ..
 ninja install
@@ -185,7 +186,7 @@ This file can also be printed at runtime when using the ``--licenses`` option.
 
 ## Unofficial Plugin Support
 
-You can enable experimental support for [Jellyscrub](https://github.com/nicknsy/jellyscrub) and [Skip Intro](https://github.com/ConfusedPolarBear/intro-skipper) in client settings. These are included for convenience only and is not an endorsement or long-term commitment to ensure functionality. See `src/native` for details on what the plugins modify code-wise.
+You can enable experimental support for [Skip Intro](https://github.com/jumoog/intro-skipper/) in client settings. These are included for convenience only and is not an endorsement or long-term commitment to ensure functionality. See `src/native` for details on what the plugins modify code-wise.
 
 ## Known Issues
 
