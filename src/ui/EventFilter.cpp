@@ -101,24 +101,23 @@ bool EventFilter::eventFilter(QObject* watched, QEvent* event)
       }
     }
 
-    if (event->type() == QEvent::MouseButtonRelease)
+    if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease)
     {
       QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
-      if (mouseEvent) {
-        QQuickItem* webView = window->findChild<QQuickItem*>("web");
-
-        if (mouseEvent->button() == Qt::BackButton)
+      if (mouseEvent && (mouseEvent->button() == Qt::BackButton || mouseEvent->button() == Qt::ForwardButton)) {
+        // Only trigger navigation on release, but block both press and release
+        // to prevent WebEngine from interpreting press-without-release as a long-press
+        if (event->type() == QEvent::MouseButtonRelease)
         {
-          QMetaObject::invokeMethod(webView, "goBack");
-          return true;
-        }
+          QQuickItem* webView = window->findChild<QQuickItem*>("web");
 
-        if (mouseEvent->button() == Qt::ForwardButton)
-        {
-          QMetaObject::invokeMethod(webView, "goForward");
-          return true;
+          if (mouseEvent->button() == Qt::BackButton)
+            QMetaObject::invokeMethod(webView, "goBack");
+          else
+            QMetaObject::invokeMethod(webView, "goForward");
         }
+        return true;
       }
     }
 
