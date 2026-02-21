@@ -1,0 +1,10 @@
+#!/bin/bash
+# APPDIR is exported by AppRun
+LIBRARY_PATH="${APPDIR}/usr/lib"
+LIBRARY_PATH="${LIBRARY_PATH}:/usr/lib64:/usr/lib:/lib64:/lib"
+LIBRARY_PATH="${LIBRARY_PATH}:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu"
+
+exec "$APPDIR/usr/lib/ld-linux-x86-64.so.2" \
+    --inhibit-cache \
+    --library-path "${LIBRARY_PATH}" \
+    "$(readlink -f "$0").real" "$@"
