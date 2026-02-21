@@ -89,7 +89,6 @@ RUN rm -rf /AppDir/usr/lib/dri \
           /AppDir/usr/lib/libOpenGL.so* \
           /AppDir/usr/lib/libgbm.so* \
           /AppDir/usr/lib/libvulkan.so* \
-          /AppDir/usr/lib/libvdpau.so* \
           /AppDir/usr/lib/libdrm.so* \
           /AppDir/usr/lib/libdrm_*.so* \
           /AppDir/usr/lib/libxshmfence.so* \
@@ -120,14 +119,19 @@ RUN cp /AppDir/usr/share/applications/org.jellyfin.JellyfinDesktop.desktop /AppD
     ln -sf org.jellyfin.JellyfinDesktop.svg /AppDir/.DirIcon
 
 # Wrap QtWebEngineProcess so it also uses the bundled ld-linux.
-# Without this, Chromium's renderer/GPU subprocesses would use the host's
-# dynamic linker and hit the same glibc mismatch.
-COPY dev/appimage/QtWebEngineProcess.wrapper /tmp/QtWebEngineProcess.wrapper
+# This MUST be a statically-linked binary, not a shell script.  The parent
+# exports LD_LIBRARY_PATH pointing to the bundled (Arch) libs; a script
+# wrapper would be interpreted by /bin/bash loaded via the host's ld-linux,
+# which then pulls in the bundled glibc — an ABI mismatch that segfaults
+# on distros whose glibc differs from the build host.
+COPY dev/appimage/webengine-wrapper.c /tmp/webengine-wrapper.c
+RUN gcc -static -O2 -o /tmp/webengine-wrapper /tmp/webengine-wrapper.c && \
+    strip /tmp/webengine-wrapper
 RUN set -e && \
     webengine_bin="$(find /AppDir/usr/lib -name QtWebEngineProcess -type f)" && \
     if [ -n "$webengine_bin" ]; then \
         mv "$webengine_bin" "${webengine_bin}.real" && \
-        cp /tmp/QtWebEngineProcess.wrapper "$webengine_bin" && \
+        cp /tmp/webengine-wrapper "$webengine_bin" && \
         chmod +x "$webengine_bin"; \
     fi
 
