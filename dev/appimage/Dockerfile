@@ -118,6 +118,13 @@ RUN cp /AppDir/usr/share/applications/org.jellyfin.JellyfinDesktop.desktop /AppD
     cp /AppDir/usr/share/icons/hicolor/scalable/apps/org.jellyfin.JellyfinDesktop.svg /AppDir/ && \
     ln -sf org.jellyfin.JellyfinDesktop.svg /AppDir/.DirIcon
 
+# Build Wayland positioner fix (LD_PRELOAD library).
+# Prevents xdg_positioner.set_size(0,0) during popup reposition, which is
+# an xdg-shell protocol violation that crashes on Mutter/GNOME.
+COPY dev/appimage/positioner-fix.c /tmp/positioner-fix.c
+RUN gcc -shared -fPIC -O2 -o /AppDir/usr/lib/libpositioner-fix.so \
+    /tmp/positioner-fix.c -ldl
+
 # Wrap QtWebEngineProcess so it also uses the bundled ld-linux.
 # This MUST be a statically-linked binary, not a shell script.  The parent
 # exports LD_LIBRARY_PATH pointing to the bundled (Arch) libs; a script
