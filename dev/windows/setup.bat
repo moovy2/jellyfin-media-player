@@ -16,29 +16,29 @@ if not exist "%7ZIP%" (
 
 if not exist "%DEPS_DIR%" mkdir "%DEPS_DIR%"
 
-echo [1/13] Installing CMake...
+echo [1/14] Installing CMake...
 winget install --id Kitware.CMake --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: CMake may already be installed
 
-echo [2/13] Installing Ninja...
+echo [2/14] Installing Ninja...
 winget install --id Ninja-build.Ninja --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: Ninja may already be installed
 
-echo [3/13] Installing 7-Zip...
+echo [3/14] Installing 7-Zip...
 winget install --id 7zip.7zip --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: 7-Zip may already be installed
 
-echo [4/13] Installing aqtinstall...
+echo [4/14] Installing aqtinstall...
 winget install --id miurahr.aqtinstall --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: aqtinstall may already be installed
 
-echo [5/13] Installing Visual Studio 2022 Build Tools...
+echo [5/14] Installing Visual Studio 2022 Build Tools...
 winget install --id Microsoft.VisualStudio.2022.BuildTools ^
   --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" ^
   --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: VS Build Tools may already be installed
 
-echo [6/13] Installing MinGW (for gendef)...
+echo [6/14] Installing MinGW (for gendef)...
 winget install --id mingw.mingw-w64-ucrt --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 (
     echo Warning: mingw.mingw-w64-ucrt not available, trying msys2.msys2...
@@ -46,11 +46,11 @@ if errorlevel 1 (
     if errorlevel 1 echo Warning: MinGW/MSYS2 install skipped. gendef fallback may run during build.
 )
 
-echo [7/13] Installing Inno Setup...
+echo [7/14] Installing Inno Setup...
 winget install --id JRSoftware.InnoSetup --accept-package-agreements --accept-source-agreements --silent
 if errorlevel 1 echo Warning: Inno Setup may already be installed
 
-echo [8/13] Installing Qt %QT_VERSION%...
+echo [8/14] Installing Qt %QT_VERSION%...
 if not exist "%DEPS_DIR%\qt\%QT_VERSION%\msvc2022_64" (
     pushd "%DEPS_DIR%"
     aqt install-qt windows desktop %QT_VERSION% win64_msvc2022_64 -m qtwebengine qtwebchannel qtpositioning -O "qt"
@@ -59,7 +59,7 @@ if not exist "%DEPS_DIR%\qt\%QT_VERSION%\msvc2022_64" (
     echo Qt already installed, skipping
 )
 
-echo [9/13] Downloading libmpv AVX2...
+echo [9/14] Downloading libmpv AVX2...
 if not exist "%DEPS_DIR%\mpv\libmpv-2.dll" (
     echo Downloading libmpv...
     if exist "%DEPS_DIR%\mpv" rmdir /s /q "%DEPS_DIR%\mpv"
@@ -100,7 +100,7 @@ if not exist "%DEPS_DIR%\mpv\libmpv-2.dll" (
     echo libmpv already installed, skipping
 )
 
-echo [10/13] Downloading libmpv fallback (non-AVX2)...
+echo [10/14] Downloading libmpv fallback (non-AVX2)...
 if not exist "%DEPS_DIR%\mpv-fallback\libmpv-2.dll" (
     if exist "%DEPS_DIR%\mpv-fallback-tmp" rmdir /s /q "%DEPS_DIR%\mpv-fallback-tmp"
     curl -L "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/%MPV_RELEASE%/mpv-dev-x86_64-%MPV_VERSION%.7z" -o "%DEPS_DIR%\mpv-fallback.7z"
@@ -137,7 +137,7 @@ if not exist "%DEPS_DIR%\mpv-fallback\libmpv-2.dll" (
     echo libmpv fallback already installed, skipping
 )
 
-echo [11/13] Downloading VCRedist and WiX tools...
+echo [11/14] Downloading VCRedist and WiX tools...
 if not exist "%DEPS_DIR%\vc_redist.x64.exe" (
     echo Downloading vc_redist.x64.exe...
     curl -L -o "%DEPS_DIR%\vc_redist.x64.exe" https://aka.ms/vs/17/release/vc_redist.x64.exe
@@ -150,7 +150,7 @@ if not exist "%DEPS_DIR%\wix" (
     del "%DEPS_DIR%\wix.zip"
 )
 
-echo [12/13] Extracting VC runtime DLLs...
+echo [12/14] Extracting VC runtime DLLs...
 if not exist "%DEPS_DIR%\vcruntime" (
     echo Extracting VCRedist with dark.exe...
     mkdir "%DEPS_DIR%\vcruntime"
@@ -167,7 +167,7 @@ if not exist "%DEPS_DIR%\vcruntime" (
     echo VC runtime DLLs extracted to %DEPS_DIR%\vcruntime
 )
 
-echo [13/13] Generating mpv import library...
+echo [13/14] Generating mpv import library...
 if exist "%DEPS_DIR%\mpv\libmpv-2.dll" (
     if not exist "%DEPS_DIR%\mpv\libmpv-2.dll.lib" (
         REM Find Visual Studio
@@ -198,6 +198,9 @@ if exist "%DEPS_DIR%\mpv\libmpv-2.dll" (
         echo mpv import library already exists, skipping
     )
 )
+
+echo [14/14] Generating CMakePresets.json...
+powershell -Command "(Get-Content '%SCRIPT_DIR%..\CMakePresets.json.in' -Raw) -replace '@QT_VERSION@','%QT_VERSION%' -replace '@BREW_PREFIX@','' | Set-Content '%PROJECT_ROOT%\CMakePresets.json' -NoNewline"
 
 echo.
 echo Setup complete. Restart terminal to refresh PATH, then run build.bat
