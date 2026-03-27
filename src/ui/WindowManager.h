@@ -69,6 +69,9 @@ private slots:
   void updateWindowState(bool saveGeo = true);
   void saveGeometrySlot();
   void onZoomFactorChanged();
+  void updateDebugInfo();
+  void onShowDebugLayerChanged();
+  void updateOpenGLInfo();
 
 private:
   // Geometry (separate size/position)
@@ -117,6 +120,11 @@ private:
   // initial size tracking to detect if size changed from default
   QSize m_initialSize;
   QSize m_initialScreenSize;
+
+  // debug info
+  QString m_systemDebugInfo;
+  QString m_openglInfo;
+  QTimer* m_infoTimer;
 };
 
 #endif // WINDOWMANAGER_H

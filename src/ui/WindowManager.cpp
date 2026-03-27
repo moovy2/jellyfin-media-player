@@ -7,12 +7,18 @@
 #include "taskbar/TaskbarComponent.h"
 #include "input/InputComponent.h"
 #include "utils/Utils.h"
+#include "system/SystemComponent.h"
 
 #include <QCursor>
 #include <QEvent>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QDebug>
+#include <QQmlProperty>
+
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 WindowManager& WindowManager::Get()
@@ -142,6 +148,16 @@ void WindowManager::initializeWindow(QQuickWindow* window)
     connect(m_webView, SIGNAL(zoomFactorChanged()), this, SLOT(onZoomFactorChanged()));
     enforceZoom();
   }
+
+  m_infoTimer = new QTimer(this);
+  m_infoTimer->setInterval(1000);
+
+  m_systemDebugInfo = SystemComponent::Get().debugInformation();
+
+  connect(m_infoTimer, &QTimer::timeout, this, &WindowManager::updateDebugInfo);
+  connect(m_window, &QQuickWindow::beforeSynchronizing, this, &WindowManager::updateOpenGLInfo, static_cast<Qt::ConnectionType>(Qt::DirectConnection|Qt::SingleShotConnection));
+
+  QQmlProperty(m_window, "showDebugLayer").connectNotifySignal(this, SLOT(onShowDebugLayerChanged()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -879,6 +895,57 @@ void WindowManager::applySettings()
 void WindowManager::onZoomFactorChanged()
 {
   enforceZoom();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WindowManager::updateDebugInfo()
+{
+  QString debugInfo = m_systemDebugInfo;
+  debugInfo += DisplayComponent::Get().debugInformation();
+  debugInfo += m_openglInfo;
+
+  QString infoString;
+  QDebug info(&infoString);
+  info << "Qt windowing info:\n";
+  info << "  FS: " << m_window->visibility() << "\n";
+  info << "  Geo: " << m_window->geometry() << "\n";
+  for (QScreen* scr : QGuiApplication::screens())
+  {
+    info << "  Screen" << scr->name() << scr->geometry() << "\n";
+  }
+  info << "\n";
+  debugInfo += infoString;
+
+  m_window->setProperty("debugInfo", debugInfo);
+  m_window->setProperty("videoInfo", PlayerComponent::Get().videoInformation());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WindowManager::onShowDebugLayerChanged() {
+  if(m_window->property("showDebugLayer").toBool()) {
+    m_infoTimer->start();
+    updateDebugInfo();
+  } else {
+    m_infoTimer->stop();
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WindowManager::updateOpenGLInfo() {
+  m_openglInfo = "";
+  QOpenGLContext* glctx = QOpenGLContext::currentContext();
+  if (glctx && glctx->isValid())
+  {
+    m_openglInfo += "\nOpenGL:\n";
+    GLenum syms[4] = {GL_VENDOR, GL_RENDERER, GL_VERSION, GL_SHADING_LANGUAGE_VERSION};
+    for (auto sym : syms)
+    {
+      auto s = glctx->functions()->glGetString(sym);
+      if (s)
+        m_openglInfo += QString("  ") + QString::fromUtf8(s) + "\n";
+    }
+    m_openglInfo += "\n";
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
