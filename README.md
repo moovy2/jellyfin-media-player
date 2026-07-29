@@ -1,6 +1,4 @@
 # Jellyfin Desktop
-> [!WARNING]
-> **Deprecated:** Development of this Qt-based desktop client has stopped in favor of a completely rewritten client built on SDL and CEF. The new client can be found at [jellyfin/jellyfin-desktop](https://github.com/jellyfin/jellyfin-desktop).
 
 Jellyfin desktop client built with Qt WebEngine and [libmpv](https://github.com/mpv-player/mpv). Supports audio passthrough, hardware decoding, and playback of more formats without transcoding.
 
