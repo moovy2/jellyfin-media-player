@@ -299,39 +299,40 @@ void PlayerComponent::queueMedia(const QString& url, const QVariantMap& options,
   QUrl qurl = url;
   QString host = qurl.host();
 
-  QVariantList command;
+  QStringList command;
   command << "loadfile" << qurl.toString(QUrl::FullyEncoded);
   command << "append-play"; // if nothing is playing, play it now, otherwise just enqueue it
 
 #if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2, 3)
-  command << -1; // insert_at_idx
+  command << "-1"; // insert_at_idx
 #endif
 
-  QVariantMap extraArgs;
+  QString extraArgs;
 
   quint64 startMilliseconds = options["startMilliseconds"].toLongLong();
   if (startMilliseconds != 0)
-    extraArgs.insert("start", "+" + QString::number(startMilliseconds / 1000.0));
+    extraArgs += "start=+" + QString::number(startMilliseconds / 1000.0) + ",";
 
   // we're going to select these streams later, in the preloaded hook
-  extraArgs.insert("aid", "no");
-  extraArgs.insert("sid", "no");
+  extraArgs += "aid=no,";
+  extraArgs += "sid=no,";
 
   m_currentSubtitleStream = subtitleStream;
   m_currentAudioStream = audioStream;
 
   if (metadata["type"] == "music")
-    extraArgs.insert("vid", "no");
+    extraArgs += "vid=no,";
 
-  extraArgs.insert("pause", options["autoplay"].toBool() ? "no" : "yes");
+  QString pause = options["autoplay"].toBool() ? "no" : "yes";
+  extraArgs += "pause=" + pause + ",";
 
   QString userAgent = metadata["headers"].toMap()["User-Agent"].toString();
   if (userAgent.size())
-    extraArgs.insert("user-agent", userAgent);
+    extraArgs += "user-agent=" + userAgent + ",";
 
   // Make sure the list of requested codecs is reset.
-  extraArgs.insert("ad", "");
-  extraArgs.insert("vd", "");
+  extraArgs += "ad=,";
+  extraArgs += "vd="; // Keep last
 
   command << extraArgs;
 
@@ -850,7 +851,7 @@ void PlayerComponent::seekTo(qint64 ms)
     return;
   }
   double timeSecs = ms / 1000.0;
-  QVariantList args = (QVariantList() << "seek" << timeSecs << "absolute+exact");
+  QStringList args = (QStringList() << "seek" << QString::number(timeSecs) << "absolute+exact");
   m_mpv->command( args);
 }
 
