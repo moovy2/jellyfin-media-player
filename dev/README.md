@@ -8,7 +8,7 @@ git submodule update --init --recursive
 Platform-specific build instructions:
 - [macOS](macos/README.md)
 - [Windows](windows/README.md)
-- Linux: See [GitHub Actions workflow](../.github/workflows/test.yml) - install deps from `debian/control`, then CMake build
+- [Linux](linux/README.md)
 
 ## Web Debugger
 
