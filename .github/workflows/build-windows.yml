@@ -99,6 +99,7 @@ jobs:
         call "%VS_PATH%\VC\Auxiliary\Build\${{ matrix.vcvars }}"
         cd build
         set PATH=%PATH%;C:\Program Files (x86)\Inno Setup 6;%CD%
+        set "QT_ROOT_DIR=%QT_ROOT_DIR:\=/%"
         cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=output -DQTROOT=%QT_ROOT_DIR% -DMPV_INCLUDE_DIR=mpv/include -DMPV_LIBRARY=mpv/libmpv-2.dll -DCHECK_FOR_UPDATES=ON -DUSE_STATIC_MPVQT=ON ..
         lib /def:mpv\mpv.def /out:mpv\libmpv-2.dll.lib /MACHINE:${{ matrix.machine }}
         ninja
