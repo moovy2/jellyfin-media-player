@@ -72,17 +72,34 @@ jobs:
       run: |
         mkdir deps
         mkdir deps/vcruntime
-        # Copy from VS 2022 Enterprise installation on runner
-        $vsRedist = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\*\x64\Microsoft.VC143.CRT" | Select-Object -First 1
+        # Dynamically locate VS installation on runner
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+        if (-not $vsPath) {
+            $vsPath = (Get-ChildItem "C:\Program Files\Microsoft Visual Studio\*\*" | Where-Object { Test-Path "$_\VC\Redist\MSVC" } | Select-Object -First 1).FullName
+        }
+        $vsRedist = Get-ChildItem "$vsPath\VC\Redist\MSVC\*\${{ matrix.vc_redist_arch }}\Microsoft.VC*.CRT" | Select-Object -First 1
+        if (-not $vsRedist) {
+            $vsRedist = Get-ChildItem "$vsPath\VC\Redist\MSVC" -Recurse -Filter "Microsoft.VC*.CRT" | Where-Object { $_.FullName -like "*${{ matrix.vc_redist_arch }}*" } | Select-Object -First 1
+        }
         Copy-Item "$vsRedist\*.dll" deps/vcruntime/
         # Also grab VCRedist installer for optional system-wide install
         Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile deps/vc_redist.x64.exe
       shell: powershell
     - name: Build
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\${{ matrix.vcvars }}"
+        set "VS_PATH="
+        for /f "tokens=*" %%i in ('"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath 2^>nul') do set "VS_PATH=%%i"
+        if not defined VS_PATH (
+            for /d %%d in ("C:\Program Files\Microsoft Visual Studio\*") do (
+                for /d %%e in ("%%d\*") do (
+                    if exist "%%e\VC\Auxiliary\Build\${{ matrix.vcvars }}" set "VS_PATH=%%e"
+                )
+            )
+        )
+        call "%VS_PATH%\VC\Auxiliary\Build\${{ matrix.vcvars }}"
         cd build
         set PATH=%PATH%;C:\Program Files (x86)\Inno Setup 6;%CD%
+        set "QT_ROOT_DIR=%QT_ROOT_DIR:\=/%"
         cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=output -DQTROOT=%QT_ROOT_DIR% -DMPV_INCLUDE_DIR=mpv/include -DMPV_LIBRARY=mpv/libmpv-2.dll -DCHECK_FOR_UPDATES=ON -DUSE_STATIC_MPVQT=ON ..
         lib /def:mpv\mpv.def /out:mpv\libmpv-2.dll.lib /MACHINE:${{ matrix.machine }}
         ninja

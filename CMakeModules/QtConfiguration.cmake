@@ -17,6 +17,11 @@ if("${QTROOT}" STREQUAL "")
   endforeach()
 endif()
 
+if(NOT "${QTROOT}" STREQUAL "")
+  file(TO_CMAKE_PATH "${QTROOT}" QTROOT)
+  set(QTROOT "${QTROOT}" CACHE PATH "Qt root directory" FORCE)
+endif()
+
 if((NOT IS_DIRECTORY ${QTROOT}) AND (NOT "${QTROOT}" STREQUAL ""))
   # Write qt.conf in the Qt depends directory so that the Qt tools can find QML files
   set(QTCONFCONTENT "[Paths]
