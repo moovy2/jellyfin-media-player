@@ -230,6 +230,45 @@ endwhile()
 
 message(STATUS "Library path fixing complete")
 
+#
+# sdl2-compat: Homebrew's sdl2 formula is now a compatibility layer that loads
+# the real SDL3 library at runtime via dlopen. Since SDL3 is not a linker
+# dependency, it is invisible to otool and is never picked up by the fixup loop
+# above. Detect sdl2-compat and bundle libSDL3 explicitly.
+#
+set(sdl2_compat_lib "${framework_path}/libSDL2-2.0.0.dylib")
+if(EXISTS "${sdl2_compat_lib}")
+  execute_process(
+    COMMAND strings -a "${sdl2_compat_lib}"
+    OUTPUT_VARIABLE sdl2_compat_strings
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(sdl2_compat_strings MATCHES "libSDL3\\.dylib")
+    set(sdl3_target "${framework_path}/libSDL3.dylib")
+    if(NOT EXISTS "${sdl3_target}")
+      set(sdl3_source "")
+      foreach(candidate "${brew_lib}/libSDL3.dylib" "${brew_lib}/libSDL3.0.dylib")
+        if(EXISTS "${candidate}")
+          get_filename_component(sdl3_source "${candidate}" REALPATH)
+          break()
+        endif()
+      endforeach()
+      if(sdl3_source)
+        message(STATUS "sdl2-compat detected, bundling SDL3 into ${framework_path}")
+        file(COPY "${sdl3_source}" DESTINATION "${framework_path}")
+        get_filename_component(sdl3_source_name "${sdl3_source}" NAME)
+        if(NOT "${sdl3_source_name}" STREQUAL "libSDL3.dylib")
+          file(RENAME "${framework_path}/${sdl3_source_name}" "${sdl3_target}")
+        endif()
+        execute_process(COMMAND install_name_tool -id "@executable_path/../Frameworks/libSDL3.dylib" "${sdl3_target}" ERROR_QUIET)
+      else()
+        message(WARNING "sdl2-compat detected but libSDL3 was not found in ${brew_lib}; the app will fail at runtime with 'Failed loading SDL3 library.'")
+      endif()
+    endif()
+  endif()
+endif()
+
 # List all bundled libraries for verification
 file(GLOB final_dylibs "${framework_path}/*.dylib")
 message(STATUS "=== Bundled libraries in Frameworks ===")
